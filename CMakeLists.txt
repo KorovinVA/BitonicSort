@@ -14,8 +14,12 @@ if (WIN32)
     set(oneApi $ENV{ONEAPI_ROOT})
 endif()
 
+add_compile_options(-Wno-reorder)
+
 include_directories(${oneApi}/dev-utilities/latest/include)
-set(SRC src/core/main.cpp)
+set(SRC src/core/main.cpp
+        src/core/bitonicsort.hpp
+)
 
 project(BitonicSort CXX)
 add_executable(BitonicSort ${SRC})
