@@ -11,58 +11,53 @@
 template <typename T> class BitonicSort {
     typedef unsigned long long ull;
 
-    const std::vector<T> &m_input;
-    std::vector<T> &m_output;
-
-    const sycl::device m_device;
+    std::vector<T> &m_input;
     const size_t m_inSize;
+    const sycl::device m_device;
 
   public:
-    BitonicSort(const std::vector<T> &input, std::vector<T> &output,
-                const sycl::device_selector &device = sycl::default_selector());
+    BitonicSort(std::vector<T> &input,
+                const sycl::device device = sycl::device());
     BitonicSort(const BitonicSort &) = delete;
 
-    void Run();
-
   private:
+    void Run();
     void RunInParallel();
 };
 
 template <typename T>
-inline BitonicSort<T>::BitonicSort(const std::vector<T> &input,
-                                   std::vector<T> &output,
-                                   const sycl::device_selector &device)
-    : m_input(input), m_output(output), m_device(sycl::device(device)),
-      m_inSize(input.size()) {
-    assert(m_inSize != 0);
-    assert(m_input.size() == m_output.size());
+inline BitonicSort<T>::BitonicSort(std::vector<T> &input,
+                                   const sycl::device device)
+    : m_input(input), m_inSize(input.size()), m_device(device) {
+    if (m_inSize != 0)
+        Run();
 }
 
 template <typename T> inline void BitonicSort<T>::Run() {
-    m_output = m_input;
-
-    // If array size is not 2^n, add values to the array
-    // to have 2^n elements.
-    size_t dataSize = m_output.size();
-    if ((dataSize & (dataSize - 1)) != 0) {
+    // If input size is not 2^n, add values to have 2^n elements
+    if ((m_inSize & (m_inSize - 1)) != 0) {
         T maxVal = std::numeric_limits<T>::max();
-        size_t newSize = std::pow(2, std::ceil(std::log(dataSize) / log(2)));
-        for (size_t i = 0; i < newSize - dataSize; ++i) {
-            m_output.push_back(maxVal);
+        size_t newSize = std::pow(2, std::ceil(std::log(m_inSize) / log(2)));
+        for (size_t i = 0; i < newSize - m_inSize; ++i) {
+            m_input.push_back(maxVal);
         }
     }
 
-    std::cout << "DEVICE: " << m_device.get_info<sycl::info::device::name>()
-              << std::endl;
     RunInParallel();
+
+    // Return old size after sorting.
+    m_input.resize(m_inSize);
 }
 
 template <typename T> inline void BitonicSort<T>::RunInParallel() {
-    ull numSteps = std::ceil(std::log(m_output.size()) / log(2));
-    auto range = sycl::range(m_output.size());
+    //std::cout << "DEVICE: " << m_device.get_info<sycl::info::device::name>()
+    //            << std::endl;
+
+    ull numSteps = std::ceil(std::log(m_input.size()) / log(2));
+    auto range = sycl::range(m_input.size());
     auto ndRange = sycl::nd_range<>(range, range);
 
-    sycl::buffer<T, 1> buff(m_output.data(), m_output.size());
+    sycl::buffer<T, 1> buff(m_input.data(), m_input.size());
     sycl::buffer<ull, 1> sNum(&numSteps, 1);
 
     sycl::queue q(m_device);

@@ -1,2 +1,6 @@
 # build files
 build/
+
+# tests are heavy
+tests/
+!tests/.gitkeep

@@ -19,6 +19,8 @@ add_compile_options(-Wno-reorder)
 include_directories(${oneApi}/dev-utilities/latest/include)
 set(SRC src/core/main.cpp
         src/core/bitonicsort.hpp
+        src/core/bitonicsortcontrol.hpp
+        src/core/bitonicsortcontrol.cpp
 )
 
 project(BitonicSort CXX)
