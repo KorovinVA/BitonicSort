@@ -4,7 +4,7 @@
 #include "bitonicsortcontrol.hpp"
 
 constexpr auto FACTOR = 15;
-constexpr auto TEST_NUMBER = 9;
+constexpr auto TEST_NUMBER = 7;
 
 BitonicSortControl::BitonicSortControl() {
     // clang-format off
