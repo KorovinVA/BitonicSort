@@ -50,9 +50,6 @@ template <typename T> inline void BitonicSort<T>::Run() {
 }
 
 template <typename T> inline void BitonicSort<T>::RunInParallel() {
-    //std::cout << "DEVICE: " << m_device.get_info<sycl::info::device::name>()
-    //            << std::endl;
-
     ull numSteps = std::ceil(std::log(m_input.size()) / log(2));
     auto range = sycl::range(m_input.size());
     auto ndRange = sycl::nd_range<>(range, range);

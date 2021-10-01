@@ -5,7 +5,7 @@
 #include "bitonicsortcontrol.hpp"
 
 constexpr auto FACTOR = 15;
-constexpr auto TEST_NUMBER = 7;
+constexpr auto TEST_NUMBER = 6;
 
 // clang-format off
 const static std::vector<BitonicSortControl::TypeModule>
@@ -23,8 +23,7 @@ void BitonicSortControl::GenerateTestValues<char>(std::ofstream &testFile,
     std::random_device rd;
     std::default_random_engine gen(rd());
     std::uniform_int_distribution<int> distr(
-        std::numeric_limits<char>::lowest(),
-        std::numeric_limits<char>::max());
+        std::numeric_limits<char>::lowest(), std::numeric_limits<char>::max());
     for (unsigned i = 0; i < count; ++i) {
         testFile << distr(gen) << " ";
     }
@@ -65,7 +64,8 @@ void BitonicSortControl::GenerateTestValues<double>(
     }
 }
 
-BitonicSortControl::BitonicSortControl() {}
+BitonicSortControl::BitonicSortControl()
+    : m_cpu((sycl::cpu_selector())), m_gpu(((sycl::gpu_selector()))) {}
 
 void BitonicSortControl::GenerateTests() const {
     // Flush test file content
@@ -103,12 +103,9 @@ void BitonicSortControl::GenerateTests() const {
             test << "\n";
             test.close();
 
-            // ... << testname << "\n" is not atomic!
-            std::string threadAtomicTestName = testName + "\n";
-
             std::ofstream config;
             config.open(m_availableTests, std::ios_base::app);
-            config << threadAtomicTestName;
+            config << testName + "\n";
             config.close();
         };
 
@@ -126,4 +123,72 @@ void BitonicSortControl::GenerateTests() const {
 
     std::for_each(std::execution::par, allowedTypes.begin(), allowedTypes.end(),
                   generator);
+}
+
+void BitonicSortControl::RunTests() const {
+    std::ifstream config(m_availableTests);
+    if (config.is_open()) {
+        std::vector<std::string> tests;
+        std::string line;
+        while (std::getline(config, line)) {
+            tests.push_back(line);
+        }
+
+        // Run tests for the same type sequentially
+        std::sort(tests.begin(), tests.end());
+
+        for (auto it : tests) {
+            if (it.empty()) {
+                continue;
+            }
+
+            auto testName = m_testDir + "\\" + it;
+            std::ifstream test(testName);
+            if (test.is_open()) {
+                std::cout << "Running " << it << std::endl;
+                std::cout << "--------------------------------------------------------" << std::endl;
+                ProcessTest(test);
+                std::cout << "--------------------------------------------------------\n" << std::endl;
+            } else {
+                std::cerr << "Cannot open " << testName << std::endl;
+            }
+        }
+        config.close();
+    } else {
+        std::cerr << "Cannot open " << m_availableTests << std::endl;
+        exit(1);
+    }
+}
+
+void BitonicSortControl::ProcessTest(std::ifstream &testFile) const {
+    std::string typeName, sizeString;
+    unsigned valueCount = 0;
+    Type type = Type::INVALID;
+
+    testFile >> typeName >> sizeString;
+    valueCount = std::stoul(sizeString);
+    for (auto it : allowedTypes) {
+        if (typeName == it.typeName) {
+            type = it.type;
+            break;
+        }
+    }
+
+    switch (type) {
+    case Type::CHAR:
+        RunTestStdTy<char>(testFile, valueCount);
+        break;
+    case Type::INT:
+        RunTestStdTy<int>(testFile, valueCount);
+        break;
+    case Type::FLOAT:
+        RunTestStdTy<float>(testFile, valueCount);
+        break;
+    case Type::DOUBLE:
+        RunTestStdTy<double>(testFile, valueCount);
+        break;
+    default:
+        std::cerr << "Type is not supported: " << typeName << std::endl;
+        exit(1);
+    }
 };

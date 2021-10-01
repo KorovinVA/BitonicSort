@@ -2,5 +2,5 @@
 build/
 
 # tests are heavy
-tests/
+tests/*
 !tests/.gitkeep
