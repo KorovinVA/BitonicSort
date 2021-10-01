@@ -5,7 +5,7 @@
 
 int main(int argc, char *argv[]) {
     BitonicSortControl bitonic;
-    bitonic.generateTests();
+    bitonic.GenerateTests();
     //if (argc == 2) {
     //    std::ifstream infile(argv[1]);
     //    if (!infile.is_open()) {

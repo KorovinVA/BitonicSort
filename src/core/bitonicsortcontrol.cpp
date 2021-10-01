@@ -1,49 +1,115 @@
 #include <execution>
-#include <vector>
+#include <limits>
+#include <random>
 
 #include "bitonicsortcontrol.hpp"
 
 constexpr auto FACTOR = 15;
 constexpr auto TEST_NUMBER = 7;
 
-BitonicSortControl::BitonicSortControl() {
-    // clang-format off
-    const std::vector<TypeModule> allowedTypes({
-        {Type::CHAR,   TEST_NUMBER},
-        {Type::INT,    TEST_NUMBER},
-        {Type::FLOAT,  TEST_NUMBER},
-        {Type::DOUBLE, TEST_NUMBER}
+// clang-format off
+const static std::vector<BitonicSortControl::TypeModule>
+    allowedTypes({
+        {BitonicSortControl::Type::CHAR,    "char",   TEST_NUMBER},
+        {BitonicSortControl::Type::INT,     "int",    TEST_NUMBER},
+        {BitonicSortControl::Type::FLOAT,   "float",  TEST_NUMBER},
+        {BitonicSortControl::Type::DOUBLE,  "double", TEST_NUMBER}
     });
-    // clang-format on
+// clang-format on
 
-    m_allowedTypes = allowedTypes;
+template <>
+void BitonicSortControl::GenerateTestValues<char>(std::ofstream &testFile,
+                                                  const unsigned &count) const {
+    std::random_device rd;
+    std::default_random_engine gen(rd());
+    std::uniform_int_distribution<int> distr(
+        std::numeric_limits<char>::lowest(),
+        std::numeric_limits<char>::max());
+    for (unsigned i = 0; i < count; ++i) {
+        testFile << distr(gen) << " ";
+    }
 }
 
-void BitonicSortControl::generateTests() const {
+template <>
+void BitonicSortControl::GenerateTestValues<int>(std::ofstream &testFile,
+                                                 const unsigned &count) const {
+    std::random_device rd;
+    std::default_random_engine gen(rd());
+    std::uniform_int_distribution<int> distr(
+        std::numeric_limits<int>::lowest() / 2,
+        std::numeric_limits<int>::max() / 2);
+    for (unsigned i = 0; i < count; ++i) {
+        testFile << distr(gen) << " ";
+    }
+}
+
+template <>
+void BitonicSortControl::GenerateTestValues<float>(
+    std::ofstream &testFile, const unsigned &count) const {
+    std::random_device rd;
+    std::default_random_engine gen(rd());
+    std::normal_distribution<float> distr(0.0f);
+    for (unsigned i = 0; i < count; ++i) {
+        testFile << distr(gen) << " ";
+    }
+}
+
+template <>
+void BitonicSortControl::GenerateTestValues<double>(
+    std::ofstream &testFile, const unsigned &count) const {
+    std::random_device rd;
+    std::default_random_engine gen(rd());
+    std::normal_distribution<double> distr(0.0f);
+    for (unsigned i = 0; i < count; ++i) {
+        testFile << distr(gen) << " ";
+    }
+}
+
+BitonicSortControl::BitonicSortControl() {}
+
+void BitonicSortControl::GenerateTests() const {
     // Flush test file content
-    std::ofstream testFile;
-    testFile.open(m_availableTests, std::ofstream::out | std::ofstream::trunc);
-    testFile.close();
+    std::ofstream config;
+    config.open(m_availableTests, std::ofstream::out | std::ofstream::trunc);
+    config.close();
 
     const auto generator = [this](TypeModule const &config) {
         const auto singleGen = [=](unsigned const &testSize) mutable {
+            std::string testName =
+                std::string(config.typeName) + "__" + std::to_string(testSize);
+            std::string fileName = m_testDir + "\\" + testName;
+            std::ofstream test;
+
+            test.open(fileName);
+            test << config.typeName << " " << testSize << "\n";
             switch (config.type) {
             case Type::CHAR:
-                generateTest<char>("char", testSize);
+                GenerateTestValues<char>(test, testSize);
                 break;
             case Type::INT:
-                generateTest<int>("int", testSize);
+                GenerateTestValues<int>(test, testSize);
                 break;
             case Type::FLOAT:
-                generateTest<float>("float", testSize);
+                GenerateTestValues<float>(test, testSize);
                 break;
             case Type::DOUBLE:
-                generateTest<double>("double", testSize);
+                GenerateTestValues<double>(test, testSize);
                 break;
             default:
                 std::cerr << "Unhandled Type!" << std::endl;
+                test.close();
                 exit(1);
             }
+            test << "\n";
+            test.close();
+
+            // ... << testname << "\n" is not atomic!
+            std::string threadAtomicTestName = testName + "\n";
+
+            std::ofstream config;
+            config.open(m_availableTests, std::ios_base::app);
+            config << threadAtomicTestName;
+            config.close();
         };
 
         std::vector<unsigned> sizeVec(config.testNum);
@@ -58,6 +124,6 @@ void BitonicSortControl::generateTests() const {
                       singleGen);
     };
 
-    std::for_each(std::execution::par, m_allowedTypes.begin(),
-                  m_allowedTypes.end(), generator);
+    std::for_each(std::execution::par, allowedTypes.begin(), allowedTypes.end(),
+                  generator);
 };
