@@ -23,7 +23,7 @@ class BitonicSortControl {
     void GenerateTestValues(std::ofstream &testFile,
                             const unsigned &testNum) const;
     template <typename T>
-    void CheckAndVerify(std::vector<T> &data, const sycl::device &device) const;
+    void CheckAndVerify(const std::vector<T> &data, const sycl::device &device) const;
     template <typename T>
     void RunTestStdTy(std::ifstream &testFile, const unsigned &size) const;
     void ProcessTest(std::ifstream &testFile) const;
@@ -35,10 +35,20 @@ BitonicSortControl::GenerateTestValues(std::ofstream &testFile,
                                        const unsigned &count) const {}
 
 template <typename T>
-inline void BitonicSortControl::CheckAndVerify(std::vector<T> &data,
+inline void BitonicSortControl::CheckAndVerify(const std::vector<T> &data,
                                                const sycl::device& device) const {
+    std::vector<T> arrayToSort(data);
+
     auto start = std::chrono::high_resolution_clock::now();
-    BitonicSort(data, device);
+    if (device == m_cpu) {
+        std::cout << "DEVICE: "
+                  << "std::sort" << std::endl;
+        std::sort(arrayToSort.begin(), arrayToSort.end());
+    } else {
+        std::cout << "DEVICE: " << device.get_info<sycl::info::device::name>()
+                  << std::endl;
+        BitonicSort(arrayToSort, device);
+    }
     auto end = std::chrono::high_resolution_clock::now();
 
     auto mSec =
@@ -48,8 +58,8 @@ inline void BitonicSortControl::CheckAndVerify(std::vector<T> &data,
               << std::endl;
 
     bool isFailed = false;
-    for (unsigned i = 1; i < data.size(); ++i) {
-        if (data[i] < data[i - 1]) {
+    for (unsigned i = 1; i < arrayToSort.size(); ++i) {
+        if (arrayToSort[i] < arrayToSort[i - 1]) {
             isFailed = true;
             break;
         }
@@ -75,5 +85,5 @@ inline void BitonicSortControl::RunTestStdTy(std::ifstream &testFile,
     }
 
     CheckAndVerify(elems, m_cpu);
-    //CheckAndVerify(elems, m_gpu);
+    CheckAndVerify(elems, m_gpu);
 }

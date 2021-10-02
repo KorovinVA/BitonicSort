@@ -5,7 +5,7 @@
 #include "bitonicsortcontrol.hpp"
 
 constexpr auto FACTOR = 15;
-constexpr auto TEST_NUMBER = 6;
+constexpr auto TEST_NUMBER = 8;
 
 // clang-format off
 const static std::vector<BitonicSortControl::TypeModule>

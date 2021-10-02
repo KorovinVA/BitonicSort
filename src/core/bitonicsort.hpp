@@ -9,7 +9,7 @@
 #include <CL/sycl.hpp>
 
 template <typename T> class BitonicSort {
-    typedef unsigned long long ull;
+    static constexpr auto MAX_GROUP_SIZE = 256;
 
     std::vector<T> &m_input;
     const size_t m_inSize;
@@ -50,48 +50,48 @@ template <typename T> inline void BitonicSort<T>::Run() {
 }
 
 template <typename T> inline void BitonicSort<T>::RunInParallel() {
-    ull numSteps = std::ceil(std::log(m_input.size()) / log(2));
+    int numSteps = std::ceil(std::log(m_input.size()) / log(2));
     auto range = sycl::range(m_input.size());
-    auto ndRange = sycl::nd_range<>(range, range);
 
-    sycl::buffer<T, 1> buff(m_input.data(), m_input.size());
-    sycl::buffer<ull, 1> sNum(&numSteps, 1);
-
+    sycl::buffer<T, 1> dataBuff(m_input.data(), m_input.size());
     sycl::queue q(m_device);
-    q.submit([&](auto &h) {
-        sycl::accessor data(buff, h, sycl::read_write);
-        sycl::accessor steps(sNum, h, sycl::read_only);
+    for (int i = 1; i <= numSteps; ++i) {
+        for (int j = i; j > 0; --j) {
+            int callDepth = i - j;
+            int nodeHeight = j;
+            q.submit([&](auto &h) {
+                sycl::accessor data(dataBuff, h, sycl::read_write);
 
-        h.parallel_for(ndRange, [=](cl::sycl::nd_item<1> wiID) {
-            const auto BitonicStep = [&](ull callDepth, ull nodeHeight) {
-                ull globalID = wiID.get_global_id();
-                ull numWarpsInCmp = 1 << (nodeHeight - 1);
-                ull numWarpsInSeq = numWarpsInCmp << (callDepth + 1);
+                h.parallel_for(range, [=](cl::sycl::id<1> wiID) {
+                    int globalID = wiID;
+                    int numWarpsInCmp = 1 << (nodeHeight - 1);
+                    int numWarpsInSeq = numWarpsInCmp << (callDepth + 1);
 
-                bool isWarpComparing = (globalID / numWarpsInCmp) % 2 == 0;
-                bool isIncreasingCmp =
-                    isWarpComparing && ((globalID / numWarpsInSeq) % 2 == 0);
+                    bool isWarpComparing = (globalID / numWarpsInCmp) % 2 == 0;
+                    bool isIncreasingCmp =
+                        isWarpComparing &&
+                        ((globalID / numWarpsInSeq) % 2 == 0);
 
-                if (isWarpComparing) {
-                    if (isIncreasingCmp) {
-                        if (data[globalID + numWarpsInCmp] < data[globalID])
-                            std::swap(data[globalID],
-                                      data[globalID + numWarpsInCmp]);
+                    if (isWarpComparing) {
+                        if (isIncreasingCmp) {
+                            if (data[globalID + numWarpsInCmp] <
+                                data[globalID]) {
+                                T temp = data[globalID];
+                                data[globalID] = data[globalID + numWarpsInCmp];
+                                data[globalID + numWarpsInCmp] = temp;
+                            }
 
-                    } else {
-                        if (data[globalID] < data[globalID + numWarpsInCmp])
-                            std::swap(data[globalID],
-                                      data[globalID + numWarpsInCmp]);
+                        } else {
+                            if (data[globalID] <
+                                data[globalID + numWarpsInCmp]) {
+                                T temp = data[globalID];
+                                data[globalID] = data[globalID + numWarpsInCmp];
+                                data[globalID + numWarpsInCmp] = temp;
+                            }
+                        }
                     }
-                }
-            };
-
-            for (ull i = 1; i <= steps[0]; ++i) {
-                for (ull j = i; j > 0; --j) {
-                    BitonicStep(i - j, j);
-                    wiID.barrier();
-                }
-            }
-        });
-    });
+                });
+            });
+        }
+    }
 }
