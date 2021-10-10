@@ -74,20 +74,13 @@ template <typename T> inline void BitonicSort<T>::RunInParallel() {
 
                     if (isWarpComparing) {
                         if (isIncreasingCmp) {
-                            if (data[globalID + numWarpsInCmp] <
-                                data[globalID]) {
-                                T temp = data[globalID];
-                                data[globalID] = data[globalID + numWarpsInCmp];
-                                data[globalID + numWarpsInCmp] = temp;
-                            }
-
+                            if (data[globalID + numWarpsInCmp] < data[globalID])
+                                std::swap(data[globalID],
+                                          data[globalID + numWarpsInCmp]);
                         } else {
-                            if (data[globalID] <
-                                data[globalID + numWarpsInCmp]) {
-                                T temp = data[globalID];
-                                data[globalID] = data[globalID + numWarpsInCmp];
-                                data[globalID + numWarpsInCmp] = temp;
-                            }
+                            if (data[globalID] < data[globalID + numWarpsInCmp])
+                                std::swap(data[globalID],
+                                          data[globalID + numWarpsInCmp]);
                         }
                     }
                 });
