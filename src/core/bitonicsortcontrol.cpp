@@ -1,4 +1,3 @@
-#include <execution>
 #include <limits>
 #include <random>
 
@@ -64,8 +63,17 @@ void BitonicSortControl::GenerateTestValues<double>(
     }
 }
 
-BitonicSortControl::BitonicSortControl()
-    : m_cpu((sycl::cpu_selector())), m_gpu(((sycl::gpu_selector()))) {}
+BitonicSortControl::BitonicSortControl() :
+    m_gpu((sycl::gpu_selector())) {
+    // Set correct path for tests dir
+    std::string currentPath = __FILE__;
+#if defined _WIN32
+#else
+    std::string dirPath = currentPath.substr(0, currentPath.rfind("/"));
+    m_testDir = dirPath + "/../../tests/";
+    m_availableTests = m_testDir + "/bitonic_list";
+#endif
+}
 
 void BitonicSortControl::GenerateTests() const {
     // Flush test file content
@@ -77,10 +85,15 @@ void BitonicSortControl::GenerateTests() const {
         const auto singleGen = [=](unsigned const &testSize) mutable {
             std::string testName =
                 std::string(config.typeName) + "__" + std::to_string(testSize);
-            std::string fileName = m_testDir + "\\" + testName;
+            std::string fileName = m_testDir + testName;
             std::ofstream test;
 
             test.open(fileName);
+            if(!test.is_open())
+            {
+                std::cout << "Cannot open " << fileName << std::endl;
+                exit(1);
+            }
             test << config.typeName << " " << testSize << "\n";
             switch (config.type) {
             case Type::CHAR:
@@ -117,12 +130,9 @@ void BitonicSortControl::GenerateTests() const {
                 sizeVec[i] = sizeVec[i - 1] * FACTOR;
             }
         }
-        std::for_each(std::execution::par, sizeVec.begin(), sizeVec.end(),
-                      singleGen);
+        std::for_each(sizeVec.begin(), sizeVec.end(), singleGen);
     };
-
-    std::for_each(std::execution::par, allowedTypes.begin(), allowedTypes.end(),
-                  generator);
+    std::for_each(allowedTypes.begin(), allowedTypes.end(), generator);
 }
 
 void BitonicSortControl::RunTests() const {
@@ -136,23 +146,10 @@ void BitonicSortControl::RunTests() const {
 
         // Run tests for the same type sequentially
         std::sort(tests.begin(), tests.end());
-
         for (auto it : tests) {
-            if (it.empty()) {
-                continue;
-            }
-
-            auto testName = m_testDir + "\\" + it;
-            std::ifstream test(testName);
-            if (test.is_open()) {
-                std::cout << "Running " << it << std::endl;
-                std::cout << "--------------------------------------------------------" << std::endl;
-                ProcessTest(test);
-                std::cout << "--------------------------------------------------------\n" << std::endl;
-            } else {
-                std::cerr << "Cannot open " << testName << std::endl;
-            }
+            ProcessTest(it);
         }
+
         config.close();
     } else {
         std::cerr << "Cannot open " << m_availableTests << std::endl;
@@ -160,35 +157,49 @@ void BitonicSortControl::RunTests() const {
     }
 }
 
-void BitonicSortControl::ProcessTest(std::ifstream &testFile) const {
-    std::string typeName, sizeString;
-    unsigned valueCount = 0;
-    Type type = Type::INVALID;
+void BitonicSortControl::ProcessTest(const std::string& testName) const {
+    std::cout << "\n--------------------------------------------------------" << std::endl;
+    std::cout << "Running " << testName << std::endl;
+    std::cout << "--------------------------------------------------------" << std::endl;
 
-    testFile >> typeName >> sizeString;
-    valueCount = std::stoul(sizeString);
-    for (auto it : allowedTypes) {
-        if (typeName == it.typeName) {
-            type = it.type;
-            break;
+    std::ifstream testFile(m_testDir + testName);
+    if (testFile.is_open())
+    {
+        std::string typeName, sizeString;
+        unsigned valueCount = 0;
+        Type type = Type::INVALID;
+
+        testFile >> typeName >> sizeString;
+        valueCount = std::stoul(sizeString);
+        for (auto it : allowedTypes) {
+            if (typeName == it.typeName) {
+                type = it.type;
+                break;
+            }
         }
-    }
 
-    switch (type) {
-    case Type::CHAR:
-        RunTestStdTy<char>(testFile, valueCount);
-        break;
-    case Type::INT:
-        RunTestStdTy<int>(testFile, valueCount);
-        break;
-    case Type::FLOAT:
-        RunTestStdTy<float>(testFile, valueCount);
-        break;
-    case Type::DOUBLE:
-        RunTestStdTy<double>(testFile, valueCount);
-        break;
-    default:
-        std::cerr << "Type is not supported: " << typeName << std::endl;
-        exit(1);
+        switch (type) {
+        case Type::CHAR:
+            RunTestStdTy<char>(testFile, valueCount);
+            break;
+        case Type::INT:
+            RunTestStdTy<int>(testFile, valueCount);
+            break;
+        case Type::FLOAT:
+            RunTestStdTy<float>(testFile, valueCount);
+            break;
+        case Type::DOUBLE:
+            RunTestStdTy<double>(testFile, valueCount);
+            break;
+        default:
+            std::cerr << "Type is not supported: " << typeName << std::endl;
+            exit(1);
+        }
+
+        testFile.close();
+    }
+    else
+    {
+        std::cerr << "Cannot open " << testName << std::endl;
     }
 };

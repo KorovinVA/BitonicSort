@@ -2,10 +2,9 @@
 #include <chrono>
 
 class BitonicSortControl {
-    const std::string m_availableTests = "..\\tests\\tests.txt";
-    const std::string m_testDir = "..\\tests";
-    const sycl::device m_cpu;
-    const sycl::device m_gpu;
+    std::string m_availableTests{};
+    std::string m_testDir{};
+    sycl::device m_gpu{};
   public:
     enum class Type { INVALID, CHAR, INT, FLOAT, DOUBLE };
     struct TypeModule {
@@ -17,16 +16,15 @@ class BitonicSortControl {
     BitonicSortControl();
     void GenerateTests() const;
     void RunTests() const;
-
+    void ProcessTest(const std::string& testName) const;
   private:
     template <typename T>
     void GenerateTestValues(std::ofstream &testFile,
                             const unsigned &testNum) const;
     template <typename T>
-    void CheckAndVerify(const std::vector<T> &data, const sycl::device &device) const;
+    void CheckAndVerify(const std::vector<T> &data, bool isStdSort) const;
     template <typename T>
     void RunTestStdTy(std::ifstream &testFile, const unsigned &size) const;
-    void ProcessTest(std::ifstream &testFile) const;
 };
 
 template <typename T>
@@ -36,18 +34,19 @@ BitonicSortControl::GenerateTestValues(std::ofstream &testFile,
 
 template <typename T>
 inline void BitonicSortControl::CheckAndVerify(const std::vector<T> &data,
-                                               const sycl::device& device) const {
+                                               bool isStdSort) const {
     std::vector<T> arrayToSort(data);
 
     auto start = std::chrono::high_resolution_clock::now();
-    if (device == m_cpu) {
+    auto sizeBefore = arrayToSort.size();
+    if (isStdSort) {
         std::cout << "DEVICE: "
                   << "std::sort" << std::endl;
         std::sort(arrayToSort.begin(), arrayToSort.end());
     } else {
-        std::cout << "DEVICE: " << device.get_info<sycl::info::device::name>()
+        std::cout << "DEVICE: " << m_gpu.get_info<sycl::info::device::name>()
                   << std::endl;
-        BitonicSort(arrayToSort, device);
+        BitonicSort(arrayToSort, m_gpu);
     }
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -64,7 +63,10 @@ inline void BitonicSortControl::CheckAndVerify(const std::vector<T> &data,
             break;
         }
     }
-
+    if(arrayToSort.size() != sizeBefore)
+    {
+        bool isFailed = true;
+    }
     std::cout << "Status: ";
     if (isFailed) {
         std::cout << "FAIL" << std::endl;
@@ -84,6 +86,6 @@ inline void BitonicSortControl::RunTestStdTy(std::ifstream &testFile,
         elems.push_back(tmp);
     }
 
-    CheckAndVerify(elems, m_cpu);
-    CheckAndVerify(elems, m_gpu);
+    CheckAndVerify(elems, true);
+    CheckAndVerify(elems, false);
 }
