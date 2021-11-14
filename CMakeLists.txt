@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Not working fo VS!
+# Not working fo VS
 set(CMAKE_BUILD_TYPE "Release")
 
 if (WIN32)
@@ -12,11 +11,11 @@ if (WIN32)
         message(FATAL_ERROR "ONEAPI_ROOT is not set. Please define it and rerun cmake.")
     endif()
     set(oneApi $ENV{ONEAPI_ROOT})
+
+    include_directories(${oneApi}/dev-utilities/latest/include)
 endif()
 
 add_compile_options(-Wno-reorder)
-
-include_directories(${oneApi}/dev-utilities/latest/include)
 set(SRC src/core/main.cpp
         src/core/bitonicsort.hpp
         src/core/bitonicsortcontrol.hpp
