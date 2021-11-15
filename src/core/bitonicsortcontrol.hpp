@@ -5,6 +5,7 @@ class BitonicSortControl {
     std::string m_availableTests{};
     std::string m_testDir{};
     sycl::device m_gpu{};
+
   public:
     enum class Type { INVALID, CHAR, INT, FLOAT, DOUBLE };
     struct TypeModule {
@@ -16,7 +17,8 @@ class BitonicSortControl {
     BitonicSortControl();
     void GenerateTests() const;
     void RunTests() const;
-    void ProcessTest(const std::string& testName) const;
+    void ProcessTest(const std::string &testName) const;
+
   private:
     template <typename T>
     void GenerateTestValues(std::ofstream &testFile,
@@ -53,8 +55,8 @@ inline void BitonicSortControl::CheckAndVerify(const std::vector<T> &data,
     auto mSec =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::chrono::duration<double> Sec = end - start;
-    std::cout << "Execution time: " << Sec.count() << " seconds, " << mSec.count() << " milliseconds"
-              << std::endl;
+    std::cout << "Execution time: " << Sec.count() << " seconds ("
+              << mSec.count() << " milliseconds)" << std::endl;
 
     bool isFailed = false;
     for (unsigned i = 1; i < arrayToSort.size(); ++i) {
@@ -63,9 +65,8 @@ inline void BitonicSortControl::CheckAndVerify(const std::vector<T> &data,
             break;
         }
     }
-    if(arrayToSort.size() != sizeBefore)
-    {
-        bool isFailed = true;
+    if (arrayToSort.size() != sizeBefore) {
+        isFailed = true;
     }
     std::cout << "Status: ";
     if (isFailed) {

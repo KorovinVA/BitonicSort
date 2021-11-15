@@ -63,16 +63,18 @@ void BitonicSortControl::GenerateTestValues<double>(
     }
 }
 
-BitonicSortControl::BitonicSortControl() :
-    m_gpu((sycl::gpu_selector())) {
+BitonicSortControl::BitonicSortControl() : m_gpu((sycl::gpu_selector())) {
     // Set correct path for tests dir
     std::string currentPath = __FILE__;
 #if defined _WIN32
+    std::string dirPath = currentPath.substr(0, currentPath.rfind("\\\\"));
+    m_testDir = dirPath + "\\\\..\\\\..\\\\tests\\\\";
+    m_availableTests = m_testDir + "bitonic_list";
 #else
     std::string dirPath = currentPath.substr(0, currentPath.rfind("/"));
     m_testDir = dirPath + "/../../tests/";
     m_availableTests = m_testDir + "/bitonic_list";
-#endif
+#endif // _WIN32
 }
 
 void BitonicSortControl::GenerateTests() const {
@@ -89,8 +91,7 @@ void BitonicSortControl::GenerateTests() const {
             std::ofstream test;
 
             test.open(fileName);
-            if(!test.is_open())
-            {
+            if (!test.is_open()) {
                 std::cout << "Cannot open " << fileName << std::endl;
                 exit(1);
             }
@@ -157,14 +158,15 @@ void BitonicSortControl::RunTests() const {
     }
 }
 
-void BitonicSortControl::ProcessTest(const std::string& testName) const {
-    std::cout << "\n--------------------------------------------------------" << std::endl;
+void BitonicSortControl::ProcessTest(const std::string &testName) const {
+    std::cout << "\n--------------------------------------------------------"
+              << std::endl;
     std::cout << "Running " << testName << std::endl;
-    std::cout << "--------------------------------------------------------" << std::endl;
+    std::cout << "--------------------------------------------------------"
+              << std::endl;
 
     std::ifstream testFile(m_testDir + testName);
-    if (testFile.is_open())
-    {
+    if (testFile.is_open()) {
         std::string typeName, sizeString;
         unsigned valueCount = 0;
         Type type = Type::INVALID;
@@ -197,9 +199,7 @@ void BitonicSortControl::ProcessTest(const std::string& testName) const {
         }
 
         testFile.close();
-    }
-    else
-    {
+    } else {
         std::cerr << "Cannot open " << testName << std::endl;
     }
 };
