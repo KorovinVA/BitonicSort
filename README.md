@@ -35,7 +35,7 @@ $ export LD_LIBRARY_PATH=~/sycl_workspace/llvm/build/lib:LD_LIBRARY_PATH
 ## Usage
 All tests and `bitonic_list` will be located in `tests` directory.
 Pass one of the following arguments to the Bitonic Sort:
-- --generate ---- Generate tests.
-- --run-all ---- Run all generated tests which are specified in `bitonic_list`.
-- --run=%testname% ---- Run %testname% (%testname% should exist in `tests`).
-- --platforminfo ---- Show sycl available targets.
+- -generate ---- Generate tests.
+- -run-all ---- Run all generated tests which are specified in `bitonic_list`.
+- -run=%testname% ---- Run %testname% (%testname% should exist in `tests`).
+- -platforminfo ---- Show sycl available targets.
